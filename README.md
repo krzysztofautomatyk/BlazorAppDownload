@@ -1,5 +1,7 @@
 # 🌟 BlazorAppDownload 🌟
 
+![BlazorAppDownload](BlazorAppDownload.png)
+
 Hey there! 👋
 
 Introducing my BlazorAppDownload application! 🚀 Built using **Blazor** in **.NET 8** 💻, this app is simply epic! 🤩
