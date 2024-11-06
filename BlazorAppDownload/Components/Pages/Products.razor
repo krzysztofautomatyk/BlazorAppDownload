@@ -89,16 +89,17 @@
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture) 
-        { 
-            HasHeaderRecord = true 
-        };
-
-        using (var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 2097152)))
-        using (var csv = new CsvReader(reader,CultureInfo.InvariantCulture))
+        try
         {
-            // var products = await csv.GetRecordsAsync<Product>().ToListAsync();
+            var file = e.File;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    HasHeaderRecord = true,
+                    MissingFieldFound = null
+                };
+
+            using var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 2097152));
+            using var csv = new CsvReader(reader, config);
             var products = new List<Product>();
             await foreach (var product in csv.GetRecordsAsync<Product>())
             {
@@ -110,9 +111,13 @@
 
             await jsRuntime.InvokeVoidAsync("alert", "Products added successfully!");
         }
-
-
+        catch (Exception ex)
+        {
+            await jsRuntime.InvokeVoidAsync("console.error", ex.Message);
+            await jsRuntime.InvokeVoidAsync("alert", "An error occurred while uploading the CSV file.");
+        }
     }
+
 
     private async Task DownloadProducts()
     {
@@ -125,6 +130,9 @@
         using (var csvWriter = new CsvWriter(textWriter,config))
         {
             await csvWriter.WriteRecordsAsync(products);
+
+            textWriter.Flush();
+
             memoryStream.Seek(0, SeekOrigin.Begin);
             using var stremRef = new DotNetStreamReference(memoryStream);
 
