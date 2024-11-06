@@ -1,14 +1,134 @@
 ﻿@page "/products"
-@inject NavigationManager Navigation
+@rendermode InteractiveServer
+@using BlazorAppDownload.Data
+@using BlazorAppDownload.Domain.Entities
+@using CsvHelper
+@using CsvHelper.Configuration
+@using Microsoft.EntityFrameworkCore
+@using System.Globalization
+@inject AppDbContext appDbContext
+@inject IJSRuntime jsRuntime
 
-<h3>Pobierz Plik</h3>
+<PageTitle>Products</PageTitle>
 
-<button @onclick="DownloadDemoFile">Pobierz demo.xls</button>
+<div class="card mb-2">
+    <div class="card-body d-flex flex-row">
+        <span class="flex-fill fw-bolder text-end p-1">Upload CSV:</span>
+        <InputFile class="form-control form-control-sm w-25" OnChange="HandleFileUpload" />
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="card-header d-flex flex-row">
+            <span class="flex-fill fw-bolder">Products</span>
+
+            <button type="button" class="btn btn-sm btn-primary" @onclick="DownloadProducts">
+                <i class="bi bi-download me-1"></i>
+                Download
+            </button>
+        </div>
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(products is null)
+                {
+                    <tr>
+                        <td class="text-center" colspan="4">Loading...</td>
+                    </tr>
+                }
+                else if(!products.Any())
+                {
+                    <tr>
+                        <td class="text-center" colspan="4">No Products Added</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var product in products)
+                    {
+                        <tr>
+                            <td>@product.Id</td>
+                            <td>@product.ProductCode</td>
+                            <td>@product.ProductName</td>
+                            <td>@product.Price</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @code {
-    private void DownloadDemoFile()
+
+    private List<Product>? products = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Przekierowanie do API, które obsłuży pobieranie pliku
-        Navigation.NavigateTo("demo.xls", forceLoad: true);
+        await base.OnAfterRenderAsync(firstRender);
+
+        if(firstRender)
+        {
+            await LoadProducts();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task LoadProducts()
+    {
+        products = await appDbContext.Products.ToListAsync();
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture) 
+        { 
+            HasHeaderRecord = true 
+        };
+
+        using (var reader = new StreamReader(file.OpenReadStream(maxAllowedSize: 2097152)))
+        using (var csv = new CsvReader(reader,CultureInfo.InvariantCulture))
+        {
+            // var products = await csv.GetRecordsAsync<Product>().ToListAsync();
+            var products = new List<Product>();
+            await foreach (var product in csv.GetRecordsAsync<Product>())
+            {
+                products.Add(product);
+            }
+            await appDbContext.Products.AddRangeAsync(products);
+            await appDbContext.SaveChangesAsync();
+            await LoadProducts();
+
+            await jsRuntime.InvokeVoidAsync("alert", "Products added successfully!");
+        }
+
+
+    }
+
+    private async Task DownloadProducts()
+    {
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true
+        };
+        using (var memoryStream = new MemoryStream())
+        using (TextWriter textWriter = new StreamWriter(memoryStream))
+        using (var csvWriter = new CsvWriter(textWriter,config))
+        {
+            await csvWriter.WriteRecordsAsync(products);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using var stremRef = new DotNetStreamReference(memoryStream);
+
+            await jsRuntime.InvokeVoidAsync("downloadFileFromStream", "products.csv", stremRef);
+        }
     }
 }
