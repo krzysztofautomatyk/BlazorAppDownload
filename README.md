@@ -28,4 +28,51 @@ The database connection is cleverly stored in the `appsettings.json` file! 🕵�
 4. Use `sample_products.csv` from repository
 ---
 
-Enjoy! 😎
+## Setting Up SQL Server in Docker 🐋
+
+To make it easy for you to get started with SQL Server, here’s a quick guide to set it up using Docker.
+
+### Step 1: Pull the SQL Server Docker Image 📥
+
+Open your terminal and run the following command to pull the SQL Server 2022 image:
+
+```bash
+docker pull mcr.microsoft.com/mssql/server:2022-latest
+```
+### Step 2: Run the SQL Server Container 🏃
+Once the image is pulled, start the SQL Server container with the command below:
+
+```bash
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong!Password" -p 1433:1433 --name sql2022container -d mcr.microsoft.com/mssql/server:2022-latest
+```
+### Step 3: Connect to SQL Server 🗄️
+To connect to the running SQL Server instance, use the sqlcmd tool. Run the following command:
+```bash
+sqlcmd -S localhost,1433 -U SA -P "YourStrong!Password"
+```
+This will connect you to the SQL Server instance running in your Docker container.
+
+### Step 4: Create a Database 🛠️
+After connecting to SQL Server, you can create a new database with the following SQL command:
+```bash
+CREATE DATABASE TestDB;
+GO
+```
+Type EXIT to leave the sqlcmd prompt after creating the database.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
