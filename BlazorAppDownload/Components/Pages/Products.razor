@@ -1,0 +1,14 @@
+﻿@page "/products"
+@inject NavigationManager Navigation
+
+<h3>Pobierz Plik</h3>
+
+<button @onclick="DownloadDemoFile">Pobierz demo.xls</button>
+
+@code {
+    private void DownloadDemoFile()
+    {
+        // Przekierowanie do API, które obsłuży pobieranie pliku
+        Navigation.NavigateTo("demo.xls", forceLoad: true);
+    }
+}
